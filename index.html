@@ -155,7 +155,6 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: var(--accent);
         margin-top: 6px;
         flex-shrink: 0;
       }
@@ -343,7 +342,31 @@
 
       const count = document.getElementById("count");
 
+      const PALETTE = [
+        "#e9c46a", "#4285f4", "#db4437", "#f57c00",
+        "#0f9d58", "#8e24aa", "#f4b400", "#7cb342",
+      ];
+
       const districtMap = {};
+      const districtColors = {};
+
+      function getDistrictColor(district) {
+        return districtColors[district];
+      }
+
+      function createMarkerIcon(color) {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41" width="20" height="33">
+          <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="${color}" stroke="white" stroke-width="1.5"/>
+          <circle cx="12.5" cy="12.5" r="4.5" fill="white" opacity="0.6"/>
+        </svg>`;
+        return L.divIcon({
+          className: "",
+          html: svg,
+          iconSize: [20, 33],
+          iconAnchor: [10, 33],
+          popupAnchor: [1, -28],
+        });
+      }
 
       let rows = [];
       let markers = [];
@@ -422,13 +445,13 @@
           }
 
           districtMap[district] ??= [];
-
           districtMap[district].push(neighborhood);
         });
 
         Object.keys(districtMap)
           .sort()
-          .forEach((district) => {
+          .forEach((district, i) => {
+            districtColors[district] = PALETTE[i];
             districtFilter.innerHTML += `
               <option value="${district}">
                 ${district}
@@ -477,12 +500,14 @@
             continue;
           }
 
+          const color = getDistrictColor(row.district);
+
           const item = document.createElement("div");
 
           item.className = "street-item";
 
           item.innerHTML = `
-            <div class="street-dot"></div>
+            <div class="street-dot" style="background:${color}"></div>
 
             <div class="street-info">
               <div class="street-name">
@@ -507,7 +532,7 @@
 
           streetList.appendChild(item);
 
-          const marker = L.marker([geo.lat, geo.lon]).addTo(map);
+          const marker = L.marker([geo.lat, geo.lon], { icon: createMarkerIcon(color) }).addTo(map);
 
           markers.push(marker);
 
