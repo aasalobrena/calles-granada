@@ -10,17 +10,12 @@
     <link rel="icon" type="image/svg+xml" href="logo.svg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
@@ -40,8 +35,7 @@
         box-sizing: border-box;
       }
 
-      html,
-      body {
+      html, body {
         height: 100%;
       }
 
@@ -134,10 +128,7 @@
         background: white;
         border: 1px solid var(--border);
         cursor: pointer;
-        transition:
-          transform 0.18s ease,
-          border-color 0.18s ease,
-          box-shadow 0.18s ease;
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
       }
 
       .street-item:hover {
@@ -298,20 +289,16 @@
       <aside class="sidebar">
         <div class="topbar">
           <div class="topbar-label">Calles visitadas</div>
-
           <div class="count-number" id="count">0</div>
-
           <div class="filters">
             <select id="district-filter">
               <option value="">Todos los distritos</option>
             </select>
-
             <select id="neighborhood-filter">
               <option value="">Todos los barrios</option>
             </select>
           </div>
         </div>
-
         <div class="street-list" id="street-list">
           <div class="loading">Cargando calles…</div>
         </div>
@@ -324,22 +311,15 @@
 
     <script>
       const map = L.map("map").setView([37.1773, -3.5986], 14);
-
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        {
-          attribution: "© OpenStreetMap © Carto",
-          subdomains: "abcd",
-          maxZoom: 19,
-        },
-      ).addTo(map);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        attribution: "© OpenStreetMap © Carto",
+        subdomains: "abcd",
+        maxZoom: 19,
+      }).addTo(map);
 
       const districtFilter = document.getElementById("district-filter");
-
       const neighborhoodFilter = document.getElementById("neighborhood-filter");
-
       const streetList = document.getElementById("street-list");
-
       const count = document.getElementById("count");
 
       const PALETTE = [
@@ -350,43 +330,30 @@
       const districtMap = {};
       const districtColors = {};
 
-      function getDistrictColor(district) {
-        return districtColors[district];
-      }
+      let rows = [];
+      let markers = [];
+      let activeItem = null;
+      let renderGeneration = 0;
 
       function createMarkerIcon(color) {
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41" width="20" height="33">
-          <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="${color}" stroke="white" stroke-width="1.5"/>
-          <circle cx="12.5" cy="12.5" r="4.5" fill="white" opacity="0.6"/>
-        </svg>`;
         return L.divIcon({
           className: "",
-          html: svg,
+          html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41" width="20" height="33">
+            <path d="M12.5 0C5.596 0 0 5.596 0 12.5c0 9.375 12.5 28.5 12.5 28.5S25 21.875 25 12.5C25 5.596 19.404 0 12.5 0z" fill="${color}" stroke="white" stroke-width="1.5"/>
+            <circle cx="12.5" cy="12.5" r="4.5" fill="white" opacity="0.6"/>
+          </svg>`,
           iconSize: [20, 33],
           iconAnchor: [10, 33],
           popupAnchor: [1, -28],
         });
       }
 
-      let rows = [];
-      let markers = [];
-      let renderGeneration = 0;
-
-      function csvUrl(gid) {
-        return `https://docs.google.com/spreadsheets/d/1h7uxX-RtPLLj_c_YT6EW5vgBvMPkgR7T88vmwvS6my4/export?format=csv&gid=${gid}`.replace(
-          /\s+/g,
-          "",
-        );
-      }
-
       async function fetchCSV(gid) {
-        const res = await fetch(csvUrl(gid));
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        return await res.text();
+        const res = await fetch(
+          `https://docs.google.com/spreadsheets/d/1h7uxX-RtPLLj_c_YT6EW5vgBvMPkgR7T88vmwvS6my4/export?format=csv&gid=${gid}`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
       }
 
       function parseCSV(text) {
@@ -402,9 +369,7 @@
 
       function formatDate(date) {
         if (!date) return "";
-
         const [day, month, year] = date.split("/");
-
         return new Date(year, month - 1, day).toLocaleDateString("es-ES", {
           day: "numeric",
           month: "short",
@@ -413,179 +378,109 @@
       }
 
       async function geocodeStreet(street) {
-        const url =
-          `https://photon.komoot.io/api/` +
-          `?q=${encodeURIComponent(`${street}, Granada, España`)}` +
-          `&limit=1` +
-          `&bbox=-3.65,37.14,-3.55,37.22`;
-
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          return null;
-        }
-
+        const res = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(`${street}, Granada, España`)}&limit=1&bbox=-3.65,37.14,-3.55,37.22`
+        );
+        if (!res.ok) return null;
         const data = await res.json();
-
-        if (!data.features?.length) {
-          return null;
-        }
-
+        if (!data.features?.length) return null;
         const [lon, lat] = data.features[0].geometry.coordinates;
-
         return { lat, lon };
       }
 
       async function loadDistricts() {
         const csv = await fetchCSV("252475818");
-
         parseCSV(csv).forEach(([district, neighborhood]) => {
-          if (!district || !neighborhood) {
-            return;
-          }
-
+          if (!district || !neighborhood) return;
           districtMap[district] ??= [];
           districtMap[district].push(neighborhood);
         });
 
-        Object.keys(districtMap)
+        districtFilter.innerHTML += Object.keys(districtMap)
           .sort()
-          .forEach((district, i) => {
+          .map((district, i) => {
             districtColors[district] = PALETTE[i];
-            districtFilter.innerHTML += `
-              <option value="${district}">
-                ${district}
-              </option>
-            `;
-          });
+            return `<option value="${district}">${district}</option>`;
+          })
+          .join("");
       }
 
       function updateNeighborhoods() {
-        neighborhoodFilter.innerHTML = `<option value="">Todos los barrios</option>`;
-
-        districtMap[districtFilter.value]?.sort().forEach((neighborhood) => {
-          neighborhoodFilter.innerHTML += `
-              <option value="${neighborhood}">
-                ${neighborhood}
-              </option>
-            `;
-        });
+        neighborhoodFilter.innerHTML =
+          `<option value="">Todos los barrios</option>` +
+          (districtMap[districtFilter.value] ?? [])
+            .sort()
+            .map((n) => `<option value="${n}">${n}</option>`)
+            .join("");
       }
 
       function clearMarkers() {
-        markers.forEach((marker) => map.removeLayer(marker));
-
+        markers.forEach((m) => map.removeLayer(m));
         markers = [];
       }
 
       async function render(filteredRows) {
         const generation = ++renderGeneration;
-
         streetList.innerHTML = "";
-
         clearMarkers();
-
+        activeItem = null;
         count.textContent = filteredRows.length;
 
         const bounds = [];
 
         for (const row of filteredRows) {
           if (generation !== renderGeneration) return;
-
           const geo = await geocodeStreet(row.street);
-
           if (generation !== renderGeneration) return;
+          if (!geo) continue;
 
-          if (!geo) {
-            continue;
-          }
-
-          const color = getDistrictColor(row.district);
+          const color = districtColors[row.district];
+          const date = formatDate(row.date);
 
           const item = document.createElement("div");
-
           item.className = "street-item";
-
           item.innerHTML = `
             <div class="street-dot" style="background:${color}"></div>
-
             <div class="street-info">
-              <div class="street-name">
-                ${row.street}
-              </div>
-
-              <div class="street-date">
-                ${formatDate(row.date)}
-              </div>
-
+              <div class="street-name">${row.street}</div>
+              <div class="street-date">${date}</div>
               <div class="street-extra">
-                <span>
-                  Distrito: ${row.district || "—"}
-                </span>
-
-                <span>
-                  Barrio: ${row.neighborhood || "—"}
-                </span>
+                <span>Distrito: ${row.district}</span>
+                <span>Barrio: ${row.neighborhood}</span>
               </div>
-            </div>
-          `;
-
+            </div>`;
           streetList.appendChild(item);
 
           const marker = L.marker([geo.lat, geo.lon], { icon: createMarkerIcon(color) }).addTo(map);
-
           markers.push(marker);
-
           bounds.push([geo.lat, geo.lon]);
 
           marker.bindPopup(`
-            <div class="popup-title">
-              ${row.street}
-            </div>
-
-            <div class="popup-date">
-              ${formatDate(row.date)}
-            </div>
-
+            <div class="popup-title">${row.street}</div>
+            <div class="popup-date">${date}</div>
             <div class="popup-extra">
-              <div>
-                Distrito: ${row.district || "—"}
-              </div>
-
-              <div>
-                Barrio: ${row.neighborhood || "—"}
-              </div>
-            </div>
-          `);
+              <div>Distrito: ${row.district}</div>
+              <div>Barrio: ${row.neighborhood}</div>
+            </div>`);
 
           item.addEventListener("click", () => {
-            document
-              .querySelectorAll(".street-item")
-              .forEach((el) => el.classList.remove("active"));
-
+            activeItem?.classList.remove("active");
+            activeItem = item;
             item.classList.add("active");
-
             map.setView([geo.lat, geo.lon], 17);
-
             marker.openPopup();
           });
         }
 
-        if (bounds.length) {
-          map.fitBounds(bounds, {
-            padding: [50, 50],
-          });
-        }
+        if (bounds.length) map.fitBounds(bounds, { padding: [50, 50] });
       }
 
       function applyFilters() {
         render(
           rows.filter(
             (row) =>
-              (!districtFilter.value ||
-                row.district === districtFilter.value) &&
-              (!neighborhoodFilter.value ||
-                row.neighborhood === neighborhoodFilter.value),
+              (!districtFilter.value || row.district === districtFilter.value) &&
+              (!neighborhoodFilter.value || row.neighborhood === neighborhoodFilter.value),
           ),
         );
       }
@@ -593,37 +488,19 @@
       async function init() {
         try {
           await loadDistricts();
-
-          const csv = await fetchCSV("0");
-
-          rows = parseCSV(csv).map(
-            ([date, street, district, neighborhood]) => ({
-              date,
-              street,
-              district,
-              neighborhood,
-            }),
-          );
-
+          rows = parseCSV(await fetchCSV("0")).map(([date, street, district, neighborhood]) => ({
+            date, street, district, neighborhood,
+          }));
           districtFilter.addEventListener("change", () => {
             neighborhoodFilter.value = "";
-
             updateNeighborhoods();
-
             applyFilters();
           });
-
           neighborhoodFilter.addEventListener("change", applyFilters);
-
           await render(rows);
         } catch (err) {
           console.error(err);
-
-          streetList.innerHTML = `
-            <div class="loading">
-              Error cargando datos
-            </div>
-          `;
+          streetList.innerHTML = `<div class="loading">Error cargando datos</div>`;
         }
       }
 
