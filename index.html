@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Calles de Granada</title>
+
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+      :root {
+        --bg: #f3f4f6;
+        --panel: #ffffffcc;
+        --border: #e5e7eb;
+        --text: #111827;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        font-family: "Manrope", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 16px;
+        height: 100vh;
+        padding: 16px;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 24px;
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+
+      .topbar {
+        padding: 24px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .count-number {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .filters {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .filters select {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: white;
+        font: inherit;
+        outline: none;
+        cursor: pointer;
+      }
+
+      .street-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+      }
+
+      .street-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .street-list::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 999px;
+      }
+
+      .street-item {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 10px;
+        padding: 14px;
+        border-radius: 18px;
+        background: white;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .street-item:hover {
+        transform: translateY(-2px);
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .street-item.active {
+        border-color: var(--accent);
+        background: #eff6ff;
+      }
+
+      .street-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        margin-top: 6px;
+        flex-shrink: 0;
+      }
+
+      .street-info {
+        flex: 1;
+      }
+
+      .street-name {
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+
+      .street-date {
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .street-extra {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .map-wrap {
+        position: relative;
+      }
+
+      #map {
+        width: 100%;
+        height: 100%;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
+
+      .loading {
+        padding: 18px;
+        color: var(--muted);
+      }
+
+      .leaflet-popup-content-wrapper {
+        background: #111827;
+        color: white;
+        border-radius: 16px;
+        padding: 4px;
+      }
+
+      .leaflet-popup-tip {
+        background: #111827;
+      }
+
+      .popup-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .popup-date {
+        font-size: 13px;
+        opacity: 0.75;
+      }
+
+      .popup-extra {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      @media (max-width: 800px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: 200px 1fr;
+          padding: 8px;
+          gap: 8px;
+          height: 100vh;
+          height: 100svh;
+        }
+
+        .sidebar {
+          order: 2;
+          border-radius: 16px;
+        }
+
+        .map-wrap {
+          order: 1;
+        }
+
+        #map {
+          border-radius: 16px;
+        }
+
+        .topbar {
+          padding: 10px 14px;
+        }
+
+        .topbar-label {
+          font-size: 11px;
+          margin-bottom: 4px;
+        }
+
+        .count-number {
+          font-size: 32px;
+        }
+
+        .filters {
+          flex-direction: row;
+          margin-top: 8px;
+          gap: 8px;
+        }
+
+        .filters select {
+          padding: 8px 10px;
+          font-size: 13px;
+          border-radius: 10px;
+        }
+
+        .street-list {
+          padding: 8px;
+        }
+
+        .street-item {
+          padding: 10px 12px;
+          border-radius: 14px;
+          margin-bottom: 8px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="topbar">
+          <div class="topbar-label">Calles visitadas</div>
+
+          <div class="count-number" id="count">0</div>
+
+          <div class="filters">
+            <select id="district-filter">
+              <option value="">Todos los distritos</option>
+            </select>
+
+            <select id="neighborhood-filter">
+              <option value="">Todos los barrios</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="street-list" id="street-list">
+          <div class="loading">Cargando calles…</div>
+        </div>
+      </aside>
+
+      <div class="map-wrap">
+        <div id="map"></div>
+      </div>
+    </div>
+
+    <script>
+      const map = L.map("map").setView([37.1773, -3.5986], 14);
+
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        {
+          attribution: "© OpenStreetMap © Carto",
+          subdomains: "abcd",
+          maxZoom: 19,
+        },
+      ).addTo(map);
+
+      const districtFilter = document.getElementById("district-filter");
+
+      const neighborhoodFilter = document.getElementById("neighborhood-filter");
+
+      const streetList = document.getElementById("street-list");
+
+      const count = document.getElementById("count");
+
+      const districtMap = {};
+
+      let rows = [];
+      let markers = [];
+      let renderGeneration = 0;
+
+      function csvUrl(gid) {
+        return `https://docs.google.com/spreadsheets/d/1h7uxX-RtPLLj_c_YT6EW5vgBvMPkgR7T88vmwvS6my4/export?format=csv&gid=${gid}`.replace(
+          /\s+/g,
+          "",
+        );
+      }
+
+      async function fetchCSV(gid) {
+        const res = await fetch(csvUrl(gid));
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        return await res.text();
+      }
+
+      function parseCSV(text) {
+        return text
+          .trim()
+          .split("\n")
+          .map((line) =>
+            (line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || []).map((v) =>
+              v.trim().replace(/^"|"$/g, ""),
+            ),
+          );
+      }
+
+      function formatDate(date) {
+        if (!date) return "";
+
+        const [day, month, year] = date.split("/");
+
+        return new Date(year, month - 1, day).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+      }
+
+      async function geocodeStreet(street) {
+        const url =
+          `https://photon.komoot.io/api/` +
+          `?q=${encodeURIComponent(`${street}, Granada, España`)}` +
+          `&limit=1` +
+          `&bbox=-3.65,37.14,-3.55,37.22`;
+
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          return null;
+        }
+
+        const data = await res.json();
+
+        if (!data.features?.length) {
+          return null;
+        }
+
+        const [lon, lat] = data.features[0].geometry.coordinates;
+
+        return { lat, lon };
+      }
+
+      async function loadDistricts() {
+        const csv = await fetchCSV("252475818");
+
+        parseCSV(csv).forEach(([district, neighborhood]) => {
+          if (!district || !neighborhood) {
+            return;
+          }
+
+          districtMap[district] ??= [];
+
+          districtMap[district].push(neighborhood);
+        });
+
+        Object.keys(districtMap)
+          .sort()
+          .forEach((district) => {
+            districtFilter.innerHTML += `
+              <option value="${district}">
+                ${district}
+              </option>
+            `;
+          });
+      }
+
+      function updateNeighborhoods() {
+        neighborhoodFilter.innerHTML = `<option value="">Todos los barrios</option>`;
+
+        districtMap[districtFilter.value]?.sort().forEach((neighborhood) => {
+          neighborhoodFilter.innerHTML += `
+              <option value="${neighborhood}">
+                ${neighborhood}
+              </option>
+            `;
+        });
+      }
+
+      function clearMarkers() {
+        markers.forEach((marker) => map.removeLayer(marker));
+
+        markers = [];
+      }
+
+      async function render(filteredRows) {
+        const generation = ++renderGeneration;
+
+        streetList.innerHTML = "";
+
+        clearMarkers();
+
+        count.textContent = filteredRows.length;
+
+        const bounds = [];
+
+        for (const row of filteredRows) {
+          if (generation !== renderGeneration) return;
+
+          const geo = await geocodeStreet(row.street);
+
+          if (generation !== renderGeneration) return;
+
+          if (!geo) {
+            continue;
+          }
+
+          const item = document.createElement("div");
+
+          item.className = "street-item";
+
+          item.innerHTML = `
+            <div class="street-dot"></div>
+
+            <div class="street-info">
+              <div class="street-name">
+                ${row.street}
+              </div>
+
+              <div class="street-date">
+                ${formatDate(row.date)}
+              </div>
+
+              <div class="street-extra">
+                <span>
+                  Distrito: ${row.district || "—"}
+                </span>
+
+                <span>
+                  Barrio: ${row.neighborhood || "—"}
+                </span>
+              </div>
+            </div>
+          `;
+
+          streetList.appendChild(item);
+
+          const marker = L.marker([geo.lat, geo.lon]).addTo(map);
+
+          markers.push(marker);
+
+          bounds.push([geo.lat, geo.lon]);
+
+          marker.bindPopup(`
+            <div class="popup-title">
+              ${row.street}
+            </div>
+
+            <div class="popup-date">
+              ${formatDate(row.date)}
+            </div>
+
+            <div class="popup-extra">
+              <div>
+                Distrito: ${row.district || "—"}
+              </div>
+
+              <div>
+                Barrio: ${row.neighborhood || "—"}
+              </div>
+            </div>
+          `);
+
+          item.addEventListener("click", () => {
+            document
+              .querySelectorAll(".street-item")
+              .forEach((el) => el.classList.remove("active"));
+
+            item.classList.add("active");
+
+            map.setView([geo.lat, geo.lon], 17);
+
+            marker.openPopup();
+          });
+        }
+
+        if (bounds.length) {
+          map.fitBounds(bounds, {
+            padding: [50, 50],
+          });
+        }
+      }
+
+      function applyFilters() {
+        render(
+          rows.filter(
+            (row) =>
+              (!districtFilter.value ||
+                row.district === districtFilter.value) &&
+              (!neighborhoodFilter.value ||
+                row.neighborhood === neighborhoodFilter.value),
+          ),
+        );
+      }
+
+      async function init() {
+        try {
+          await loadDistricts();
+
+          const csv = await fetchCSV("0");
+
+          rows = parseCSV(csv).map(
+            ([date, street, district, neighborhood]) => ({
+              date,
+              street,
+              district,
+              neighborhood,
+            }),
+          );
+
+          districtFilter.addEventListener("change", () => {
+            neighborhoodFilter.value = "";
+
+            updateNeighborhoods();
+
+            applyFilters();
+          });
+
+          neighborhoodFilter.addEventListener("change", applyFilters);
+
+          await render(rows);
+        } catch (err) {
+          console.error(err);
+
+          streetList.innerHTML = `
+            <div class="loading">
+              Error cargando datos
+            </div>
+          `;
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
