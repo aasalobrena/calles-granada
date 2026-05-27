@@ -187,6 +187,10 @@
         box-shadow: var(--shadow);
       }
 
+      .drag-handle {
+        display: none;
+      }
+
       .loading {
         padding: 18px;
         color: var(--muted);
@@ -225,29 +229,48 @@
 
       @media (max-width: 800px) {
         .app {
-          grid-template-columns: 1fr;
-          grid-template-rows: 200px 1fr;
-          padding: 8px;
-          gap: 8px;
-          height: 100vh;
+          display: block;
+          position: relative;
           height: 100svh;
-        }
-
-        .sidebar {
-          order: 2;
-          border-radius: 16px;
+          padding: 0;
+          overflow: hidden;
         }
 
         .map-wrap {
-          order: 1;
+          position: absolute;
+          inset: 0;
         }
 
         #map {
-          border-radius: 16px;
+          border-radius: 0;
+        }
+
+        .sidebar {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 62vh;
+          border-radius: 20px 20px 0 0;
+          transform: translateY(0);
+          transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+          z-index: 1000;
+        }
+
+        .drag-handle {
+          display: block;
+          width: 40px;
+          height: 4px;
+          background: #d1d5db;
+          border-radius: 2px;
+          margin: 10px auto 6px;
+          cursor: grab;
+          flex-shrink: 0;
+          user-select: none;
         }
 
         .topbar {
-          padding: 10px 14px;
+          padding: 4px 14px 10px;
         }
 
         .topbar-label {
@@ -287,6 +310,7 @@
   <body>
     <div class="app">
       <aside class="sidebar">
+        <div class="drag-handle"></div>
         <div class="topbar">
           <div class="topbar-label">Calles visitadas</div>
           <div class="count-number" id="count">0</div>
@@ -504,6 +528,97 @@
         }
       }
 
+      function initBottomSheet() {
+        if (window.innerWidth > 800) return;
+        const sidebar = document.querySelector(".sidebar");
+        const handle = document.querySelector(".drag-handle");
+
+        let collapsed = false;
+        let dragging = false;
+        let startY = 0;
+        let startOffset = 0;
+
+        function getCollapsedY() {
+          return sidebar.offsetHeight - 44;
+        }
+
+        function getCurrentY() {
+          const t = sidebar.style.transform;
+          const match = t && t.match(/translateY\((-?[\d.]+)px\)/);
+          return match ? parseFloat(match[1]) : 0;
+        }
+
+        function slideTo(y, animate) {
+          sidebar.style.transition = animate
+            ? "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)"
+            : "none";
+          sidebar.style.transform = `translateY(${y}px)`;
+        }
+
+        function onStart(clientY) {
+          dragging = true;
+          startY = clientY;
+          startOffset = getCurrentY();
+          sidebar.style.transition = "none";
+        }
+
+        function onMove(clientY) {
+          if (!dragging) return;
+          const dy = clientY - startY;
+          const next = Math.max(0, Math.min(getCollapsedY(), startOffset + dy));
+          sidebar.style.transform = `translateY(${next}px)`;
+        }
+
+        function onEnd(clientY) {
+          if (!dragging) return;
+          dragging = false;
+          const dy = clientY - startY;
+
+          if (Math.abs(dy) < 10) {
+            collapsed = !collapsed;
+            slideTo(collapsed ? getCollapsedY() : 0, true);
+            return;
+          }
+
+          const currentY = getCurrentY();
+          if (dy > 0 || currentY > getCollapsedY() * 0.5) {
+            slideTo(getCollapsedY(), true);
+            collapsed = true;
+          } else {
+            slideTo(0, true);
+            collapsed = false;
+          }
+        }
+
+        handle.addEventListener(
+          "touchstart",
+          (e) => onStart(e.touches[0].clientY),
+          { passive: true },
+        );
+        window.addEventListener(
+          "touchmove",
+          (e) => {
+            if (dragging) onMove(e.touches[0].clientY);
+          },
+          { passive: true },
+        );
+        window.addEventListener("touchend", (e) =>
+          onEnd(e.changedTouches[0].clientY),
+        );
+
+        handle.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          onStart(e.clientY);
+        });
+        window.addEventListener("mousemove", (e) => {
+          if (dragging) onMove(e.clientY);
+        });
+        window.addEventListener("mouseup", (e) => {
+          if (dragging) onEnd(e.clientY);
+        });
+      }
+
+      initBottomSheet();
       init();
     </script>
   </body>
