@@ -3,19 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>Calles de Granada</title>
-
     <link rel="icon" href="favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="logo.svg" />
-
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
@@ -35,7 +34,8 @@
         box-sizing: border-box;
       }
 
-      html, body {
+      html,
+      body {
         height: 100%;
       }
 
@@ -128,7 +128,10 @@
         background: white;
         border: 1px solid var(--border);
         cursor: pointer;
-        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          box-shadow 0.18s ease;
       }
 
       .street-item:hover {
@@ -335,11 +338,14 @@
 
     <script>
       const map = L.map("map").setView([37.1773, -3.5986], 14);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: "© OpenStreetMap © Carto",
-        subdomains: "abcd",
-        maxZoom: 19,
-      }).addTo(map);
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        {
+          attribution: "© OpenStreetMap © Carto",
+          subdomains: "abcd",
+          maxZoom: 19,
+        },
+      ).addTo(map);
 
       const districtFilter = document.getElementById("district-filter");
       const neighborhoodFilter = document.getElementById("neighborhood-filter");
@@ -347,8 +353,14 @@
       const count = document.getElementById("count");
 
       const PALETTE = [
-        "#e9c46a", "#4285f4", "#db4437", "#f57c00",
-        "#0f9d58", "#8e24aa", "#f4b400", "#7cb342",
+        "#e9c46a",
+        "#4285f4",
+        "#db4437",
+        "#f57c00",
+        "#0f9d58",
+        "#8e24aa",
+        "#f4b400",
+        "#7cb342",
       ];
 
       const districtMap = {};
@@ -374,7 +386,7 @@
 
       async function fetchCSV(gid) {
         const res = await fetch(
-          `https://docs.google.com/spreadsheets/d/1h7uxX-RtPLLj_c_YT6EW5vgBvMPkgR7T88vmwvS6my4/export?format=csv&gid=${gid}`
+          `https://docs.google.com/spreadsheets/d/1h7uxX-RtPLLj_c_YT6EW5vgBvMPkgR7T88vmwvS6my4/export?format=csv&gid=${gid}`,
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.text();
@@ -403,7 +415,7 @@
 
       async function geocodeStreet(street) {
         const res = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(`${street}, Granada, España`)}&limit=1&bbox=-3.65,37.14,-3.55,37.22`
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(`${street}, Granada, España`)}&limit=1&bbox=-3.65,37.14,-3.55,37.22`,
         );
         if (!res.ok) return null;
         const data = await res.json();
@@ -475,7 +487,9 @@
             </div>`;
           streetList.appendChild(item);
 
-          const marker = L.marker([geo.lat, geo.lon], { icon: createMarkerIcon(color) }).addTo(map);
+          const marker = L.marker([geo.lat, geo.lon], {
+            icon: createMarkerIcon(color),
+          }).addTo(map);
           markers.push(marker);
           bounds.push([geo.lat, geo.lon]);
 
@@ -503,8 +517,10 @@
         render(
           rows.filter(
             (row) =>
-              (!districtFilter.value || row.district === districtFilter.value) &&
-              (!neighborhoodFilter.value || row.neighborhood === neighborhoodFilter.value),
+              (!districtFilter.value ||
+                row.district === districtFilter.value) &&
+              (!neighborhoodFilter.value ||
+                row.neighborhood === neighborhoodFilter.value),
           ),
         );
       }
@@ -512,9 +528,14 @@
       async function init() {
         try {
           await loadDistricts();
-          rows = parseCSV(await fetchCSV("0")).map(([date, street, district, neighborhood]) => ({
-            date, street, district, neighborhood,
-          }));
+          rows = parseCSV(await fetchCSV("0")).map(
+            ([date, street, district, neighborhood]) => ({
+              date,
+              street,
+              district,
+              neighborhood,
+            }),
+          );
           districtFilter.addEventListener("change", () => {
             neighborhoodFilter.value = "";
             updateNeighborhoods();
